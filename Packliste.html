@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camping Gewichts-Rechner</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; background: #f8f9fa; color: #333; }
+        h2 { text-align: center; color: #2c3e50; }
+        .section-title { font-weight: bold; margin-top: 20px; margin-bottom: 5px; color: #16a085; border-bottom: 2px solid #16a085; padding-bottom: 3px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .item-row { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; padding: 10px 0; }
+        .item-left { display: flex; align-items: center; cursor: pointer; flex-grow: 1; font-size: 17px; }
+        input[type="checkbox"] { transform: scale(1.4); margin-right: 15px; cursor: pointer; }
+        select { padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; background: white; cursor: pointer; }
+        
+        #total-container { 
+            position: sticky; 
+            bottom: 0; 
+            background: #2c3e50; 
+            color: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: 20px; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+            text-align: center; 
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.15); 
+        }
+        .metric { display: flex; flex-direction: column; justify-content: center; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; }
+        .metric-label { font-size: 0.85em; opacity: 0.8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-val { font-size: 1.4em; font-weight: bold; }
+        .danger { color: #ff4d4d !important; }
+        .success { color: #2ecc71 !important; }
+
+        #save-indicator {
+            text-align: center;
+            font-size: 13px;
+            color: #888;
+            margin-top: 8px;
+            height: 18px;
+            transition: opacity 0.5s;
+        }
+        #reset-btn {
+            grid-column: 1 / -1;
+            padding: 6px 16px;
+            font-size: 13px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #reset-btn:hover { background: rgba(255,255,255,0.25); }
+
+        .extra-weight-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .extra-weight-row .label {
+            font-size: 17px;
+            flex-grow: 1;
+        }
+        .extra-weight-row .label span {
+            display: block;
+            font-size: 13px;
+            color: #888;
+            margin-top: 2px;
+        }
+        .stepper {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .stepper button {
+            width: 44px;
+            height: 44px;
+            font-size: 22px;
+            line-height: 1;
+            background: white;
+            border: none;
+            cursor: pointer;
+            color: #2c3e50;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .stepper button:active { background: #e0e0e0; }
+        .stepper .count {
+            min-width: 52px;
+            text-align: center;
+            font-size: 17px;
+            font-weight: bold;
+            color: #2c3e50;
+            border-left: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+            padding: 0 6px;
+            line-height: 44px;
+        }
+        .count.positive { color: #e67e22; }
+        .count.negative { color: #3498db; }
+    </style>
+</head>
+<body>
+
+    <h2>⛺ Camping Packliste & Fahrzeug-Kalkulator</h2>
+    
+    <div id="list">
+        <div class="section-title">Fahrzeug & Besatzung</div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-0" value="80.0" class="weight-checkbox">
+                <span>Beifahrer (80.0 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-1" value="4.6" class="weight-checkbox">
+                <span>Dieseltank 100% (+ 4.6 kg zur Basis)</span>
+            </label>
+        </div>
+
+        <div class="section-title">Dach & Basis</div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-2" value="57.0" class="weight-checkbox" data-category="roof">
+                <span>Dachzelt (57.0 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-3" value="5.4" class="weight-checkbox" data-category="roof">
+                <span>Dachträger (5.4 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-4" value="3.0" class="weight-checkbox">
+                <span>Auffahrkeile (3.0 kg)</span>
+            </label>
+        </div>
+
+        <div class="section-title">Wasser & Verpflegung</div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-5" value="10.0" class="weight-checkbox">
+                <span>Wasserkanister (10.0 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-6" value="20.0" class="weight-checkbox">
+                <span>Solardusche (20.0 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-7" value="5.0" class="weight-checkbox">
+                <span>Trinkwasser (5.0 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-8" value="8.0" class="weight-checkbox">
+                <span>Essenvorräte 2 Tage (8.0 kg)</span>
+            </label>
+        </div>
+        
+        <div class="section-title">Küche & Energie</div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-9" value="19.7" class="weight-checkbox">
+                <span>Kühlbox (19.7 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-10" value="4.4" class="weight-checkbox">
+                <span>Powerstation (4.4 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-11" value="4.6" class="weight-checkbox">
+                <span>Solarpanel (4.6 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-12" value="26.7" class="weight-checkbox">
+                <span>Küche + Tisch (26.7 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-13" value="1.5" class="weight-checkbox">
+                <span>Campingtisch (1.5 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-14" value="0.9" class="weight-checkbox">
+                <span>Campingstuhl 1 (0.9 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-15" value="0.9" class="weight-checkbox">
+                <span>Campingstuhl 2 (0.9 kg)</span>
+            </label>
+        </div>
+        
+        <div class="section-title">Schlafen & Vorzelt</div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-16" value="0.5" class="weight-checkbox" data-category="roof-opt" data-select-id="sel-iso">
+                <span>Isolation Innenzelt (0.5 kg)</span>
+            </label>
+            <select id="sel-iso" class="location-select"><option value="car">Auto</option><option value="roof">Dach</option></select>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-17" value="9.0" class="weight-checkbox">
+                <span>Vorzelt inkl. Stangen & Heringe (9.0 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-18" value="2.5" class="weight-checkbox">
+                <span>Plane inkl. Stangen & Heringe (2.5 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-19" value="5.7" class="weight-checkbox" data-category="roof-opt" data-select-id="sel-bett">
+                <span>Bettzeug (5.7 kg)</span>
+            </label>
+            <select id="sel-bett" class="location-select"><option value="car">Auto</option><option value="roof">Dach</option></select>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-20" value="0.9" class="weight-checkbox" data-category="roof-opt" data-select-id="sel-meli">
+                <span>Schlafsack Meli (0.9 kg)</span>
+            </label>
+            <select id="sel-meli" class="location-select"><option value="car">Auto</option><option value="roof">Dach</option></select>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-21" value="1.2" class="weight-checkbox" data-category="roof-opt" data-select-id="sel-phili">
+                <span>Schlafsack Phili (1.2 kg)</span>
+            </label>
+            <select id="sel-phili" class="location-select"><option value="car">Auto</option><option value="roof">Dach</option></select>
+        </div>
+        
+        <div class="section-title">Kisten & Werkzeug</div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-22" value="3.2" class="weight-checkbox">
+                <span>Camping Werkzeug Kiste + Kabel (3.2 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-23" value="5.5" class="weight-checkbox">
+                <span>Stoffdecken + Kiste Gr (5.5 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-24" value="3.3" class="weight-checkbox">
+                <span>Hygienekiste (3.3 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-25" value="6.4" class="weight-checkbox">
+                <span>Grill (6.4 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-26" value="3.1" class="weight-checkbox">
+                <span>Feuerschale (3.1 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-27" value="9.2" class="weight-checkbox">
+                <span>Random Kiste + Decken (9.2 kg)</span>
+            </label>
+        </div>
+        
+        <div class="section-title">Bikes & Zubehör</div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-28" value="17.8" class="weight-checkbox" data-category="stuetz">
+                <span>Veloträger (17.8 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-29" value="17.4" class="weight-checkbox" data-category="stuetz">
+                <span>Trek (17.4 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-30" value="16.4" class="weight-checkbox" data-category="stuetz">
+                <span>Yt (16.4 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-31" value="2.7" class="weight-checkbox">
+                <span>Pumpe + boost (2.7 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-32" value="5.4" class="weight-checkbox">
+                <span>Bike Werkzeug + Spares (5.4 kg)</span>
+            </label>
+        </div>
+        <div class="item-row">
+            <label class="item-left">
+                <input type="checkbox" id="cb-33" value="12.3" class="weight-checkbox">
+                <span>Bike Kiste + Fullface (12.3 kg)</span>
+            </label>
+        </div>
+
+        <div class="section-title">Sonstiges</div>
+        <div class="extra-weight-row">
+            <div class="label">
+                Zusatzgewicht
+                <span id="extra-label">0 kg</span>
+            </div>
+            <div class="stepper">
+                <button onclick="changeExtra(-1)" aria-label="Minus">−</button>
+                <div class="count" id="extra-count">0 kg</div>
+                <button onclick="changeExtra(+1)" aria-label="Plus">+</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="save-indicator" style="text-align:center;font-size:13px;color:#888;margin-top:8px;height:18px;transition:opacity 0.5s;"></div>
+
+    <div id="total-container">
+        <div class="metric">
+            <span class="metric-label">Gesamtgewicht (Max 2048)</span>
+            <span class="metric-val"><span id="total">1485.0</span> kg</span>
+        </div>
+        <div class="metric">
+            <span class="metric-label">Freie Kapazität</span>
+            <span class="metric-val"><span id="free" class="success">563.0</span> kg</span>
+        </div>
+        <div class="metric">
+            <span class="metric-label">Dachlast (Max 75)</span>
+            <span class="metric-val"><span id="dach">0.0</span> kg</span>
+        </div>
+        <div class="metric">
+            <span class="metric-label">Stützlast (Max 75)</span>
+            <span class="metric-val"><span id="stuetz">0.0</span> kg</span>
+        </div>
+        <button id="reset-btn" onclick="resetAll()">Alles zurücksetzen</button>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'camping-packliste-v1';
+        const checkboxes = document.querySelectorAll('.weight-checkbox');
+        const selects = document.querySelectorAll('.location-select');
+        let extraWeight = 0;
+
+        function changeExtra(delta) {
+            extraWeight += delta;
+            updateExtraDisplay();
+            saveState();
+            calculate();
+        }
+
+        function updateExtraDisplay() {
+            const el = document.getElementById('extra-count');
+            const label = document.getElementById('extra-label');
+            el.textContent = extraWeight + ' kg';
+            el.className = 'count' + (extraWeight > 0 ? ' positive' : extraWeight < 0 ? ' negative' : '');
+            if (extraWeight === 0) {
+                label.textContent = '0 kg';
+            } else if (extraWeight > 0) {
+                label.textContent = '+' + extraWeight + ' kg hinzugefügt';
+            } else {
+                label.textContent = extraWeight + ' kg abgezogen';
+            }
+        }
+
+        function saveState() {
+            const state = {};
+            checkboxes.forEach(box => { state[box.id] = box.checked; });
+            selects.forEach(sel => { state[sel.id] = sel.value; });
+            state['extra-weight'] = extraWeight;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            const ind = document.getElementById('save-indicator');
+            ind.textContent = '✓ Gespeichert';
+            ind.style.opacity = '1';
+            setTimeout(() => { ind.style.opacity = '0'; }, 1500);
+        }
+
+        function loadState() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const state = JSON.parse(raw);
+            checkboxes.forEach(box => { if (box.id in state) box.checked = state[box.id]; });
+            selects.forEach(sel => { if (sel.id in state) sel.value = state[sel.id]; });
+            if ('extra-weight' in state) {
+                extraWeight = state['extra-weight'];
+                updateExtraDisplay();
+            }
+        }
+
+        function resetAll() {
+            if (!confirm('Wirklich alles zurücksetzen?')) return;
+            checkboxes.forEach(box => { box.checked = false; });
+            selects.forEach(sel => { sel.value = 'car'; });
+            extraWeight = 0;
+            updateExtraDisplay();
+            saveState();
+            calculate();
+        }
+        
+        function calculate() {
+            const LEERGEWICHT = 1485.0;
+            const MAX_GESAMT = 2048.0;
+            const MAX_DACH = 75.0;
+            const MAX_STUETZ = 75.0;
+
+            let currentTotal = LEERGEWICHT;
+            let currentDach = 0.0;
+            let currentStuetz = 0.0;
+
+            checkboxes.forEach(box => {
+                if (box.checked) {
+                    const weight = parseFloat(box.value);
+                    currentTotal += weight;
+                    if (box.dataset.category === 'roof') {
+                        currentDach += weight;
+                    } else if (box.dataset.category === 'stuetz') {
+                        currentStuetz += weight;
+                    } else if (box.dataset.category === 'roof-opt') {
+                        const selectEl = document.getElementById(box.dataset.selectId);
+                        if (selectEl && selectEl.value === 'roof') currentDach += weight;
+                    }
+                }
+            });
+
+            currentTotal += extraWeight;
+
+            const currentFree = MAX_GESAMT - currentTotal;
+
+            const elTotal = document.getElementById('total');
+            const elFree = document.getElementById('free');
+            const elDach = document.getElementById('dach');
+            const elStuetz = document.getElementById('stuetz');
+
+            elTotal.innerText = currentTotal.toFixed(1);
+            elFree.innerText = currentFree.toFixed(1);
+            elDach.innerText = currentDach.toFixed(1);
+            elStuetz.innerText = currentStuetz.toFixed(1);
+
+            elTotal.className = currentTotal > MAX_GESAMT ? 'danger' : '';
+            elFree.className = currentFree < 0 ? 'danger' : 'success';
+            elDach.className = currentDach > MAX_DACH ? 'danger' : '';
+            elStuetz.className = currentStuetz > MAX_STUETZ ? 'danger' : '';
+        }
+
+        function onChange() { saveState(); calculate(); }
+
+        checkboxes.forEach(box => box.addEventListener('change', onChange));
+        selects.forEach(sel => sel.addEventListener('change', onChange));
+
+        loadState();
+        calculate();
+    </script>
+</body>
+</html>
